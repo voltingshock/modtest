@@ -1,8 +1,13 @@
+import me.modmuss50.mpp.ReleaseType
+
+
 plugins {
     id 'idea'
     id 'java-library'
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.78'
+    id "me.modmuss50.mod-publish-plugin" version "0.7.2"
+    
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -17,9 +22,35 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
+
 repositories {
     mavenLocal()
+
+    flatDir {
+        dirs 'libs'
+    }
+
+    maven {
+        name = "ModMaven"
+        url = "https://modmaven.dev/"
+        content {
+            includeGroup "me.desht.pneumaticcraft"
+        }
+    }
+
+    maven {
+        url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+    }
+    maven {
+        name "createmod maven"
+        url "https://maven.createmod.net/"
+    }
+    maven { url = "https://mvn.devos.one/snapshots" }
+    
+    mavenCentral()
 }
+
+
 
 base {
     archivesName = mod_id
@@ -64,15 +95,16 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
-        data {
-            data()
+		data {
+    		data()
 
-            // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
-            // gameDirectory = project.file('run-data')
+    		programArguments.addAll '--mod', project.mod_id,
+                            		'--existing-mod', 'pneumaticcraft',
+                            		'--all',
+                            		'--output', file('src/generated/resources/').getAbsolutePath(),
+                            		'--existing', file('src/main/resources/').getAbsolutePath()
+		}
 
-            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
-        }
 
         // applies to all the run configs above
         configureEach {
@@ -113,6 +145,23 @@ configurations {
 }
 
 dependencies {
+    implementation("me.desht.pneumaticcraft:pneumaticcraft-repressurized:${pncr_version}+mc${minecraft_version}") {
+        transitive = false
+    }
+ 	//jarJar(implementation files("libs/Ponder-NeoForge-1.21.1-1.0.46.jar"))
+	jarJar(implementation("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}"))
+	// MC<minecraft_version>-<registrate_version>
+    jarJar(implementation("com.tterrag.registrate:Registrate:${registrate_version}"))
+    jarJar(implementation("net.createmod.ponder:Ponder-NeoForge-${minecraft_version}:${ponder_version}"))
+
+    //compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${flywheel_minecraft_version}:${flywheel_version}")
+    //(jarJar("dev.engine-room.flywheel:flywheel-neoforge-${flywheel_minecraft_version}:${flywheel_version}"))
+    // [MC<minecraft_version>,MC<next_minecraft_version>)
+    //jarJar(group: 'com.tterrag.registrate', name: 'Registrate', version: "[MC1.21,")
+    
+}
+
+
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
@@ -134,7 +183,7 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
-}
+
 
 // This block of code expands all declared replace properties in the specified resource targets.
 // A missing property will result in an error. Properties are expanded using ${} Groovy notation.
@@ -150,12 +199,13 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_license            : mod_license,
             mod_version            : mod_version,
             mod_authors            : mod_authors,
-            mod_description        : mod_description
+            mod_description        : mod_description,
+            pncr_version           : pncr_version
     ]
-    inputs.properties replaceProperties
-    expand replaceProperties
-    from "src/main/templates"
-    into "build/generated/sources/modMetadata"
+    //inputs.properties replaceProperties
+    ///expand replaceProperties
+    //from "src/main/templates"
+    //into "build/generated/sources/modMetadata"
 }
 // Include the output of "generateModMetadata" as an input directory for the build
 // this works with both building through Gradle and the IDE.
@@ -172,7 +222,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/repo"
+            url = "file://${project.projectDir}/repo"
         }
     }
 }
